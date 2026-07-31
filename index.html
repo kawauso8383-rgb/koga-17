@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>⛽ SS業務報告アプリ（古賀・高木）</title>
+  <style>
+    :root {
+      --primary-color: #06C755; /* LINEグリーン */
+      --bg-color: #f4f5f7;
+      --card-bg: #ffffff;
+      --text-color: #333333;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      margin: 0;
+      padding: 12px;
+      padding-bottom: 40px;
+    }
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+    }
+    h1 {
+      text-align: center;
+      font-size: 1.2rem;
+      margin-bottom: 12px;
+    }
+    /* タブ切り替え */
+    .tab-container {
+      display: flex;
+      background: #e0e0e0;
+      border-radius: 12px;
+      padding: 4px;
+      margin-bottom: 16px;
+    }
+    .tab-button {
+      flex: 1;
+      padding: 12px;
+      border: none;
+      background: none;
+      font-size: 1rem;
+      font-weight: bold;
+      color: #666;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .tab-button.active {
+      background: var(--card-bg);
+      color: var(--primary-color);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    /* カード・フォームスタイル */
+    .card {
+      background: var(--card-bg);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 16px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+    }
+    .card-title {
+      font-size: 1rem;
+      font-weight: bold;
+      border-bottom: 2px solid var(--primary-color);
+      padding-bottom: 6px;
+      margin-bottom: 12px;
+      color: #111;
+    }
+
+    /* 通常の横並びレイアウト */
+    .form-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+    .form-row label {
+      font-size: 0.95rem;
+      font-weight: bold;
+      color: #333;
+      flex: 1;
+      padding-right: 8px;
+    }
+    .form-row input[type="text"], .form-row select {
+      width: 55%;
+      padding: 8px 10px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      font-size: 1rem;
+      box-sizing: border-box;
+    }
+
+    /* 縦積みフォームグループ */
+    .form-group-stack {
+      margin-bottom: 12px;
+    }
+    .form-group-stack label {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: bold;
+      margin-bottom: 4px;
+      color: #555;
+    }
+    select, input[type="text"], textarea {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      font-size: 1rem;
+      box-sizing: border-box;
+    }
+
+    /* 入荷予定用の行レイアウト */
+    .arrival-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    .arrival-row label {
+      width: 90px;
+      font-size: 0.9rem;
+      font-weight: bold;
+      color: #333;
+    }
+    .arrival-row input[type="text"] {
+      flex: 1;
+      padding: 8px 10px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      font-size: 1rem;
+      box-sizing: border-box;
+    }
+    .arrival-row select {
+      width: 75px;
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-weight: bold;
+      box-sizing: border-box;
+    }
+
+    /* ローリー用の省スペース2列レイアウト */
+    .lorry-grid-2 {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+    .lorry-item {
+      width: calc(50% - 5px);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-sizing: border-box;
+    }
+    .lorry-item label {
+      font-size: 0.95rem;
+      font-weight: bold;
+      color: #333;
+    }
+    .lorry-item input[type="text"] {
+      width: 70px !important;
+      padding: 6px 8px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      font-size: 1rem;
+      text-align: right;
+      box-sizing: border-box;
+    }
+
+    /* 送信ボタン */
+    .btn-submit {
+      width: 100%;
+      background-color: var(--primary-color);
+      color: white;
+      border: none;
+      padding: 14px;
+      font-size: 1.1rem;
+      font-weight: bold;
+      border-radius: 10px;
+      cursor: pointer;
+      box-shadow: 0 4px 6px rgba(6, 199, 85, 0.3);
+    }
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+
+<iframe name="hidden_iframe" id="hidden_iframe" style="display:none;"></iframe>
+
+<div class="container">
+  <h1>⛽ SS業務報告アプリ</h1>
+
+  <!-- 8時 / 15時 切り替えタブ -->
+  <div class="tab-container">
+    <button class="tab-button active" onclick="switchTab('8AM', event)">☀️ 8時報告</button>
+    <button class="tab-button" onclick="switchTab('3PM', event)">🌙 15時報告</button>
+  </div>
+
+  <!-- 店舗選択 -->
+  <div class="card">
+    <div class="form-row" style="margin-bottom:0;">
+      <label for="shopSelect">対象店舗</label>
+      <select id="shopSelect" class="focusable">
+        <option value="古賀SS">古賀SS</option>
+        <option value="高木SS">高木SS</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- ================= 8時報告フォーム ================= -->
+  <div id="form-8AM">
+    <div class="card">
+      <div class="card-title">朝の在庫 (kL)</div>
+      <div class="form-row"><label>ハイオク</label><input type="text" pattern="[0-9]*" id="st-8am-h" class="focusable"></div>
+      <div class="form-row"><label>レギュラー①</label><input type="text" pattern="[0-9]*" id="st-8am-r1" class="focusable"></div>
+      <div class="form-row"><label>レギュラー②</label><input type="text" pattern="[0-9]*" id="st-8am-r2" class="focusable"></div>
+      <div class="form-row"><label>レギュラー③</label><input type="text" pattern="[0-9]*" id="st-8am-r3" class="focusable"></div>
+      <div class="form-row"><label>軽油</label><input type="text" pattern="[0-9]*" id="st-8am-d" class="focusable"></div>
+      <div class="form-row"><label>灯油</label><input type="text" pattern="[0-9]*" id="st-8am-k" class="focusable"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">前日販売数量 (kL)</div>
+      <div class="form-row"><label>昨日ハイオク</label><input type="text" pattern="[0-9]*" id="sale-8am-h" class="focusable"></div>
+      <div class="form-row"><label>昨日レギュラー</label><input type="text" pattern="[0-9]*" id="sale-8am-r" class="focusable"></div>
+      <div class="form-row"><label>昨日軽油</label><input type="text" pattern="[0-9]*" id="sale-8am-d" class="focusable"></div>
+      <div class="form-row"><label>昨日灯油</label><input type="text" pattern="[0-9]*" id="sale-8am-k" class="focusable"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">朝販売数量 (kL)</div>
+      <div class="form-row"><label>朝のハイオク</label><input type="text" pattern="[0-9]*" id="msale-8am-h" class="focusable"></div>
+      <div class="form-row"><label>朝のレギュラー</label><input type="text" pattern="[0-9]*" id="msale-8am-r" class="focusable"></div>
+      <div class="form-row"><label>朝の軽油</label><input type="text" pattern="[0-9]*" id="msale-8am-d" class="focusable"></div>
+      <div class="form-row"><label>朝の灯油</label><input type="text" pattern="[0-9]*" id="msale-8am-k" class="focusable"></div>
+    </div>
+
+    <!-- 本日入荷予定 -->
+    <div class="card">
+      <div class="card-title">本日入荷予定 (kL)</div>
+      <div class="arrival-row">
+        <label>ハイオク</label>
+        <input type="text" pattern="[0-9]*" id="arr-h" class="focusable" placeholder="数量">
+        <select id="arr-h-status"><option value="OK">OK</option><option value="NG">NG</option></select>
+      </div>
+      <div class="arrival-row">
+        <label>レギュラー</label>
+        <input type="text" pattern="[0-9]*" id="arr-r" class="focusable" placeholder="数量">
+        <select id="arr-r-status"><option value="OK">OK</option><option value="NG">NG</option></select>
+      </div>
+      <div class="arrival-row">
+        <label>軽油</label>
+        <input type="text" pattern="[0-9]*" id="arr-d" class="focusable" placeholder="数量">
+        <select id="arr-d-status"><option value="OK">OK</option><option value="NG">NG</option></select>
+      </div>
+      <div class="arrival-row">
+        <label>灯油</label>
+        <input type="text" pattern="[0-9]*" id="arr-k" class="focusable" placeholder="数量">
+        <select id="arr-k-status"><option value="OK">OK</option><option value="NG">NG</option></select>
+      </div>
+
+      <div class="form-group-stack" style="margin-top: 16px; border-top: 1px solid #eee; padding-top: 12px;">
+        <label>本日の入庫状況プルダウン</label>
+        <select id="val-8am-lorry-status" class="focusable" onchange="toggleCustomStatus8AM()">
+          <option value="本日のローリー入庫問題ありません。">本日のローリー入庫問題ありません。</option>
+          <option value="custom">手打ち入力（プルダウン以外）</option>
+        </select>
+      </div>
+      <div class="form-group-stack hidden" id="custom-status-group-8am">
+        <label>入庫状況（自由入力）</label>
+        <input type="text" id="val-8am-custom-status" class="focusable" placeholder="例：本日のローリー入庫1時間遅れあり">
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= 15時報告フォーム ================= -->
+  <div id="form-3PM" class="hidden">
+    <div class="card">
+      <div class="card-title">本日の販売累計</div>
+      <div class="form-row"><label>ガソリン (kL)</label><input type="text" pattern="[0-9]*" id="val-3pm-sale-g" class="focusable"></div>
+      <div class="form-row"><label>軽油 (kL)</label><input type="text" pattern="[0-9]*" id="val-3pm-sale-d" class="focusable"></div>
+      <div class="form-row"><label>灯油 (kL)</label><input type="text" pattern="[0-9]*" id="val-3pm-sale-k" class="focusable"></div>
+      <div class="form-row"><label>オイル (台)</label><input type="text" pattern="[0-9]*" id="val-3pm-oil" class="focusable"></div>
+      <div class="form-row"><label>洗車 (台)</label><input type="text" pattern="[0-9]*" id="val-3pm-wash" class="focusable"></div>
+      <div class="form-row"><label>スプレー (台)</label><input type="text" pattern="[0-9]*" id="val-3pm-spray" class="focusable"></div>
+      <div class="form-group-stack" style="margin-top:8px;">
+        <label>その他手打ち（コーティングなど）</label>
+        <input type="text" id="val-3pm-other-sales" class="focusable" placeholder="例：コーティング：2台">
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">15時在庫 (kL)</div>
+      <div class="form-row"><label>在庫ハイオク</label><input type="text" pattern="[0-9]*" id="val-3pm-stock-h" class="focusable"></div>
+      <div class="form-row"><label>在庫レギュラー①</label><input type="text" pattern="[0-9]*" id="val-3pm-stock-r1" class="focusable"></div>
+      <div class="form-row"><label>在庫レギュラー②</label><input type="text" pattern="[0-9]*" id="val-3pm-stock-r2" class="focusable"></div>
+      <div class="form-row"><label>在庫レギュラー③</label><input type="text" pattern="[0-9]*" id="val-3pm-stock-r3" class="focusable"></div>
+      <div class="form-row"><label>在庫軽油</label><input type="text" pattern="[0-9]*" id="val-3pm-stock-d" class="focusable"></div>
+      <div class="form-row"><label>在庫灯油</label><input type="text" pattern="[0-9]*" id="val-3pm-stock-k" class="focusable"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">明日のローリー予定 (kL)</div>
+      <div class="lorry-grid-2">
+        <div class="lorry-item"><label>H (ハイオク)</label><input type="text" pattern="[0-9]*" id="lorry-h" class="focusable"></div>
+        <div class="lorry-item"><label>R (レギュラー)</label><input type="text" pattern="[0-9]*" id="lorry-r" class="focusable"></div>
+        <div class="lorry-item"><label>D (軽油)</label><input type="text" pattern="[0-9]*" id="lorry-d" class="focusable"></div>
+        <div class="lorry-item"><label>K (灯油)</label><input type="text" pattern="[0-9]*" id="lorry-k" class="focusable"></div>
+      </div>
+
+      <div class="form-group-stack" style="margin-top: 12px; border-top: 1px solid #eee; padding-top: 12px;">
+        <label>明日の入庫状況プルダウン</label>
+        <select id="val-3pm-lorry-status" class="focusable" onchange="toggleCustomStatus3PM()">
+          <option value="明日のローリー入庫問題ありません。">明日のローリー入庫問題ありません。</option>
+          <option value="custom">手打ち入力（プルダウン以外）</option>
+        </select>
+      </div>
+      <div class="form-group-stack hidden" id="custom-status-group-3pm">
+        <label>入庫状況（自由入力）</label>
+        <input type="text" id="val-3pm-custom-status" class="focusable" placeholder="例：明日のローリー入庫1時間遅れあり">
+      </div>
+      <div class="form-group-stack">
+        <label>特記事項・連絡メモ（自由記述）</label>
+        <textarea id="val-3pm-memo" rows="2" class="focusable" placeholder="レギュラーが満タンを超えるため…など"></textarea>
+      </div>
+    </div>
+  </div>
+
+  <button class="btn-submit focusable" id="btnSubmit" onclick="generateAndSend()">💬 LINEを開いて送信する</button>
+</div>
+
+<script>
+  const GAS_URL = "https://script.google.com/macros/s/AKfycbx3kg48cE3uNZMpUUclQapUzsqdXp89pPpVDiZ_3dF8LkSxGsNhdn5dm1KT7wcIXCZjzg/exec";
+
+  let currentTab = '8AM';
+
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA') {
+      e.preventDefault();
+      const focusables = Array.from(document.querySelectorAll('.focusable'));
+      const visibleFocusables = focusables.filter(el => {
+        return el.offsetWidth > 0 && el.offsetHeight > 0 && getComputedStyle(el).visibility !== 'hidden';
+      });
+      const index = visibleFocusables.indexOf(e.target);
+      if (index > -1 && index < visibleFocusables.length - 1) {
+        visibleFocusables[index + 1].focus();
+      }
+    }
+  });
+
+  function switchTab(tab, evt) {
+    currentTab = tab;
+    document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+    document.getElementById('form-8AM').classList.add('hidden');
+    document.getElementById('form-3PM').classList.add('hidden');
+    evt.target.classList.add('active');
+    if (tab === '8AM') {
+      document.getElementById('form-8AM').classList.remove('hidden');
+    } else {
+      document.getElementById('form-3PM').classList.remove('hidden');
+    }
+  }
+
+  function toggleCustomStatus8AM() {
+    const statusSelect = document.getElementById('val-8am-lorry-status').value;
+    document.getElementById('custom-status-group-8am').classList.toggle('hidden', statusSelect !== 'custom');
+  }
+
+  function toggleCustomStatus3PM() {
+    const statusSelect = document.getElementById('val-3pm-lorry-status').value;
+    document.getElementById('custom-status-group-3pm').classList.toggle('hidden', statusSelect !== 'custom');
+  }
+
+  function resetAllInputs() {
+    const inputs = document.querySelectorAll('input[type="text"], textarea');
+    inputs.forEach(input => input.value = '');
+    document.getElementById('val-8am-lorry-status').selectedIndex = 0;
+    document.getElementById('val-3pm-lorry-status').selectedIndex = 0;
+    document.getElementById('arr-h-status').selectedIndex = 0;
+    document.getElementById('arr-r-status').selectedIndex = 0;
+    document.getElementById('arr-d-status').selectedIndex = 0;
+    document.getElementById('arr-k-status').selectedIndex = 0;
+    toggleCustomStatus8AM();
+    toggleCustomStatus3PM();
+  }
+
+  function sendToSpreadsheetViaForm(shop, tab, dataObj) {
+    if (!GAS_URL || GAS_URL.includes("ここに古賀高木用")) return;
+    let form = document.createElement("form");
+    form.method = "POST";
+    form.action = GAS_URL;
+    form.target = "hidden_iframe";
+    let input = document.createElement("input");
+    input.type = "hidden";
+    input.name = "payload";
+    input.value = JSON.stringify({ shop: shop, tab: tab, values: dataObj });
+    form.appendChild(input);
+    document.body.appendChild(form);
+    form.submit();
+    document.body.removeChild(form);
+  }
+
+  function getVal(id) {
+    const el = document.getElementById(id);
+    return el ? el.value : '';
+  }
+
+  function makeRowText(name, val, unit = "") {
+    let dots = "";
+    if (name === "ハイオク") dots = "・";
+    else if (name === "レギュラー") dots = "";
+    else if (name === "軽油" || name === "灯油") dots = "・・・";
+    else if (name === "昨日ハイオク" || name === "朝のハイオク") dots = "・";
+    else if (name === "昨日レギュラー" || name === "朝のレギュラー") dots = "";
+    else if (name === "昨日軽油" || name === "昨日灯油" || name === "朝の軽油" || name === "朝の灯油") dots = "・・・";
+    else if (name === "ガソリン") dots = "・";
+    else if (name === "軽油" || name === "灯油") dots = "・・・";
+    else if (name === "オイル") dots = "・・";
+    else if (name === "洗車") dots = "・・・";
+    else if (name === "スプレー") dots = "・";
+    else if (name === "在庫ハイオク") dots = "・";
+    else if (name === "在庫レギュラー") dots = "";
+    else if (name === "在庫軽油" || name === "在庫灯油") dots = "・・・";
+
+    return `${name}${dots}： ${val}${unit ? " " + unit : ""}`;
+  }
+
+  function formatArrivalRow(name, val, status) {
+    if (!val) return "";
+    let nameWithDots = name;
+    if (name === "ハイオク") nameWithDots = "ハイオク・";
+    else if (name === "軽油") nameWithDots = "軽油・・・";
+    else if (name === "灯油") nameWithDots = "灯油・・・";
+    else if (name === "レギュラー") nameWithDots = "レギュラー";
+    return `${nameWithDots} ${val}KL ・・・ ${status}\n`;
+  }
+
+  function generateAndSend() {
+    const shop = document.getElementById('shopSelect').value;
+    let plainText = "";
+    let sheetData = {};
+
+    if (currentTab === '8AM') {
+      const stockH = getVal('st-8am-h') || '0';
+      const r1 = getVal('st-8am-r1') || '0';
+      const r2 = getVal('st-8am-r2') || '0';
+      const r3 = getVal('st-8am-r3') || '0';
+      const regTotal = (parseFloat(r1 || 0) + parseFloat(r2 || 0) + parseFloat(r3 || 0)).toFixed(1);
+      const stockD = getVal('st-8am-d') || '0';
+      const stockK = getVal('st-8am-k') || '0';
+
+      const saleH = getVal('sale-8am-h') || '0';
+      const saleR = getVal('sale-8am-r') || '0';
+      const saleD = getVal('sale-8am-d') || '0';
+      const saleK = getVal('sale-8am-k') || '0';
+
+      const mSaleH = getVal('msale-8am-h') || '0';
+      const mSaleR = getVal('msale-8am-r') || '0';
+      const mSaleD = getVal('msale-8am-d') || '0';
+      const mSaleK = getVal('msale-8am-k') || '0';
+
+      const arrH = getVal('arr-h'), arrHSt = getVal('arr-h-status');
+      const arrR = getVal('arr-r'), arrRSt = getVal('arr-r-status');
+      const arrD = getVal('arr-d'), arrDSt = getVal('arr-d-status');
+      const arrK = getVal('arr-k'), arrKSt = getVal('arr-k-status');
+
+      plainText += `${shop}\n\n`;
+      plainText += makeRowText("ハイオク", stockH, "KL") + "\n";
+      plainText += makeRowText("レギュラー", regTotal, "KL") + "\n";
+      plainText += makeRowText("軽油", stockD, "KL") + "\n";
+      plainText += makeRowText("灯油", stockK, "KL") + "\n\n";
+
+      plainText += makeRowText("昨日ハイオク", saleH, "KL") + "\n";
+      plainText += makeRowText("昨日レギュラー", saleR, "KL") + "\n";
+      plainText += makeRowText("昨日軽油", saleD, "KL") + "\n";
+      plainText += makeRowText("昨日灯油", saleK, "KL") + "\n\n";
+
+      plainText += makeRowText("朝のハイオク", mSaleH, "KL") + "\n";
+      plainText += makeRowText("朝のレギュラー", mSaleR, "KL") + "\n";
+      plainText += makeRowText("朝の軽油", mSaleD, "KL") + "\n";
+      plainText += makeRowText("朝の灯油", mSaleK, "KL") + "\n\n";
+
+      let arrivalText = "";
+      arrivalText += formatArrivalRow("ハイオク", arrH, arrHSt);
+      arrivalText += formatArrivalRow("レギュラー", arrR, arrRSt);
+      arrivalText += formatArrivalRow("軽油", arrD, arrDSt);
+      arrivalText += formatArrivalRow("灯油", arrK, arrKSt);
+      if (arrivalText) plainText += `本日入荷予定\n${arrivalText}\n`;
+
+      const statusSelect = document.getElementById('val-8am-lorry-status').value;
+      let lorryStatus = statusSelect === 'custom' ? (document.getElementById('val-8am-custom-status').value || '本日のローリー入庫問題ありません。') : statusSelect;
+      plainText += `${lorryStatus}`;
+
+      sheetData = { stockH, regTotal, stockD, stockK, saleH, saleR, saleD, saleK, mSaleH, mSaleR, mSaleD, mSaleK, arrH, arrHSt, arrR, arrRSt, arrD, arrDSt, arrK, arrKSt, lorryStatus };
+
+    } else { // 15時報告
+      const saleG = getVal('val-3pm-sale-g') || '0', saleD = getVal('val-3pm-sale-d') || '0', saleK = getVal('val-3pm-sale-k') || '0', oil = getVal('val-3pm-oil') || '0', wash = getVal('val-3pm-wash') || '0', spray = getVal('val-3pm-spray') || '0';
+
+      const stockH = getVal('val-3pm-stock-h') || '0';
+      const pmR1 = getVal('val-3pm-stock-r1') || '0';
+      const pmR2 = getVal('val-3pm-stock-r2') || '0';
+      const pmR3 = getVal('val-3pm-stock-r3') || '0';
+      const stockR = (parseFloat(pmR1 || 0) + parseFloat(pmR2 || 0) + parseFloat(pmR3 || 0)).toFixed(1);
+      const stockD_st = getVal('val-3pm-stock-d') || '0';
+      const stockK_st = getVal('val-3pm-stock-k') || '0';
+
+      plainText += `${shop}\n\n`;
+      plainText += makeRowText("ガソリン", saleG) + "\n";
+      plainText += makeRowText("軽油", saleD) + "\n";
+      plainText += makeRowText("灯油", saleK) + "\n";
+      plainText += makeRowText("オイル", oil, "台") + "\n";
+      plainText += makeRowText("洗車", wash, "台") + "\n";
+      plainText += makeRowText("スプレー", spray, "台") + "\n";
+      const otherSales = getVal('val-3pm-other-sales');
+      if (otherSales) plainText += `${otherSales}\n`;
+      plainText += "\n";
+
+      plainText += makeRowText("在庫ハイオク", stockH) + "\n";
+      plainText += makeRowText("在庫レギュラー", stockR) + "\n";
+      plainText += makeRowText("在庫軽油", stockD_st) + "\n";
+      plainText += makeRowText("在庫灯油", stockK_st) + "\n\n";
+
+      const lorryH = getVal('lorry-h') || 0, lorryR = getVal('lorry-r') || 0, lorryD = getVal('lorry-d') || 0, lorryK = getVal('lorry-k') || 0;
+      let parts = [];
+      if (parseFloat(lorryH) > 0) parts.push(`H ${lorryH}k`);
+      if (parseFloat(lorryR) > 0) parts.push(`R ${lorryR}k`);
+      if (parseFloat(lorryD) > 0) parts.push(`D ${lorryD}k`);
+      if (parseFloat(lorryK) > 0) parts.push(`K ${lorryK}k`);
+      if (parts.length > 0) plainText += `明日のローリー\n${parts.join(' / ')}\n`;
+
+      const memo = getVal('val-3pm-memo');
+      if (memo) plainText += `${memo}\n`;
+
+      const statusSelect = document.getElementById('val-3pm-lorry-status').value;
+      let lorryStatus = statusSelect === 'custom' ? (document.getElementById('val-3pm-custom-status').value || '明日のローリー入庫問題ありません。') : statusSelect;
+      plainText += `\n${lorryStatus}`;
+
+      sheetData = { saleG, saleD, saleK, oil, wash, spray, otherSales, stockH, stockR, stockD_st, stockK_st, lorryH, lorryR, lorryD, lorryK, memo, lorryStatus };
+    }
+
+    sendToSpreadsheetViaForm(shop, currentTab, sheetData);
+    const trimmedText = plainText.trim();
+    navigator.clipboard.writeText(trimmedText);
+    resetAllInputs();
+    window.location.href = "https://line.me/R/share?text=" + encodeURIComponent(trimmedText);
+  }
+</script>
+</body>
+</html>
